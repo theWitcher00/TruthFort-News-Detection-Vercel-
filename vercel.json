@@ -12,12 +12,19 @@
   ],
   "routes": [
     {
-      "src": "/(.*\.html)",
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/(.*\\.html)",
       "dest": "/$1"
     },
     {
       "src": "/(.*)",
       "dest": "/main.py"
     }
-  ]
+  ],
+  "env": {
+    "PYTHONPATH": "@"
+  }
 }
