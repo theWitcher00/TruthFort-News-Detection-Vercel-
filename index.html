@@ -487,10 +487,9 @@
                                 <div class="bg-gray-800 rounded-lg p-4 text-sm">
                                     <p class="text-gray-300 font-semibold mb-2">Possible solutions:</p>
                                     <ul class="list-disc ml-5 text-gray-400 space-y-1">
-                                        <li>Ensure the Python backend is running on port 8000</li>
-                                        <li>Run: <code class="bg-gray-700 px-2 py-1 rounded text-cyan-300">python main.py</code></li>
+                                        <li>Ensure the Python backend is running</li>
                                         <li>Check for "Server running" message in terminal</li>
-                                        <li>Verify your NewsAPI key in config.py</li>
+                                        <li>Verify your NewsAPI key in .env file</li>
                                     </ul>
                                 </div>
                                 <p class="text-gray-400 text-xs mt-3">Error: ${error.message}</p>
@@ -531,11 +530,11 @@
                             Top Sources Referenced:
                         </h4>
                         <div class="space-y-3">
-                            ${result.sources.map((source, index) => `
+                            ${result.sources.slice(0, 3).map((source, index) => `
                                 <div class="bg-gray-800 bg-opacity-50 p-4 rounded-lg border border-gray-700 hover:border-cyan-500 transition-all duration-300">
                                     <div class="flex items-start">
                                         <span class="bg-cyan-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0">${index + 1}</span>
-                                        <p class="text-gray-300 text-sm">${source}</p>
+                                        <p class="text-gray-300 text-sm">${source.substring(0, 200)}${source.length > 200 ? '...' : ''}</p>
                                     </div>
                                 </div>
                             `).join('')}
@@ -572,7 +571,7 @@
                             <i class="fas fa-quote-left mr-2 text-cyan-400"></i>
                             Statement Analyzed:
                         </h4>
-                        <p class="text-gray-200 text-lg italic">"${result.statement}"</p>
+                        <p class="text-gray-200 text-lg italic">"${result.statement || 'No statement provided'}"</p>
                     </div>
                     
                     <div class="bg-gray-900 bg-opacity-50 rounded-lg p-6">
@@ -580,7 +579,7 @@
                             <i class="fas fa-brain mr-2 text-cyan-400"></i>
                             Analysis:
                         </h4>
-                        <p class="text-gray-200">${result.reason}</p>
+                        <p class="text-gray-200">${result.reason || 'No analysis available.'}</p>
                     </div>
                     
                     ${sourcesHTML}
