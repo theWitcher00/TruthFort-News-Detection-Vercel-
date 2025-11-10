@@ -151,12 +151,12 @@
 
                 <!-- Team Credits -->
                 <div class="mt-8 pt-6 border-t border-gray-800">
-                    <p class="text-gray-500 text-sm mb-2">Developed by ❣️ from:</p>
+                    <p class="text-gray-500 text-sm mb-2">Developed by ❣️ from: <span class="bg-blue-900 bg-opacity-40 text-blue-300 px-3 py-1 rounded-full text-xs">The Abhijay Chauhan</span></p>
                     <div class="flex flex-wrap gap-2">
-                        <span class="bg-blue-900 bg-opacity-40 text-blue-300 px-3 py-1 rounded-full text-xs">Abhijay Chauhan</span>
-                        <span class="bg-cyan-900 bg-opacity-40 text-cyan-300 px-3 py-1 rounded-full text-xs">Rakesh Singh</span>
-                        <span class="bg-green-900 bg-opacity-40 text-green-300 px-3 py-1 rounded-full text-xs">Jaya Maurya</span>
-                        <span class="bg-blue-800 bg-opacity-40 text-blue-200 px-3 py-1 rounded-full text-xs">Abhishek Kushwaha</span>
+                        <!-- <span class="bg-blue-900 bg-opacity-40 text-blue-300 px-3 py-1 rounded-full text-xs">Abhijay Chauhan</span> -->
+                        <!-- <span class="bg-cyan-900 bg-opacity-40 text-cyan-300 px-3 py-1 rounded-full text-xs">Rakesh Singh</span> -->
+                        <!-- <span class="bg-green-900 bg-opacity-40 text-green-300 px-3 py-1 rounded-full text-xs">Jaya Maurya</span> -->
+                        <!-- <span class="bg-blue-800 bg-opacity-40 text-blue-200 px-3 py-1 rounded-full text-xs">Abhishek Kushwaha</span> -->
                     </div>
                 </div>
             </div>
@@ -446,7 +446,7 @@
     </div>
 
     <script>
-        // Get API base URL
+        // Get API base URL - Fixed for deployment
         const API_BASE = window.location.origin;
 
         function handleLogin(event) {
@@ -459,18 +459,23 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     sessionStorage.setItem('currentUser', JSON.stringify(data.user));
                     window.location.href = 'index.html';
                 } else {
-                    alert('Login failed: ' + data.message);
+                    alert('Login failed: ' + (data.message || 'Invalid credentials'));
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Login error. Please try again.');
+                alert('Login error. Please try again. Error: ' + error.message);
             });
         }
 
@@ -485,18 +490,23 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert('Registration successful! Please login.');
                     showLogin();
                 } else {
-                    alert('Registration failed: ' + data.message);
+                    alert('Registration failed: ' + (data.message || 'Email already exists'));
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Registration error. Please try again.');
+                alert('Registration error. Please try again. Error: ' + error.message);
             });
         }
 
