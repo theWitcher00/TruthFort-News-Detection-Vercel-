@@ -5,8 +5,6 @@ import nltk
 import sqlite3
 import hashlib
 from datetime import datetime
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import os
 from dotenv import load_dotenv
 import re
@@ -19,13 +17,13 @@ NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 app = Flask(__name__)
 CORS(app)
 
-# Ensure NLTK data
-nltk.data.path.append('./nltk_data')
-for pkg in ['punkt', 'stopwords']:
-    try:
-        nltk.data.find(f'tokenizers/{pkg}') if pkg == 'punkt' else nltk.data.find(f'corpora/{pkg}')
-    except LookupError:
-        nltk.download(pkg, download_dir='./nltk_data')
+# Simple NLTK setup - remove downloads for now
+try:
+    nltk.data.find('tokenizers/punkt')
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    # Skip downloads for now to speed up build
+    pass
 
 # Database initialization
 def init_db():
@@ -70,7 +68,7 @@ def create_user(name, email, password):
 
 class NewsVerifier:
     def __init__(self):
-        self.vectorizer = TfidfVectorizer(stop_words='english')
+        pass
 
     def clean_text(self, text):
         return re.sub(r'[^\w\s]', '', text.lower())
@@ -84,15 +82,15 @@ class NewsVerifier:
                 "Verified information from trusted news outlets"
             ]
         
-        url = f"https://newsapi.org/v2/everything?q={query}&apiKey={NEWS_API_KEY}&language=en&pageSize=10"
+        url = f"https://newsapi.org/v2/everything?q={query}&apiKey={NEWS_API_KEY}&language=en&pageSize=5"
         try:
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 data = r.json()
                 articles = [
                     f"{a.get('title','')} {a.get('description','')}".strip()
-                    for a in data.get('articles', [])
-                    if a.get('title') and a.get('description')
+                    for a in data.get('articles', [])[:3]
+                    if a.get('title')
                 ]
                 return articles if articles else ["No detailed articles found for this query"]
         except Exception as e:
@@ -111,35 +109,33 @@ class NewsVerifier:
                 'sources': ['Data source temporarily unavailable']
             }
         
-        all_texts = [statement] + articles
-        try:
-            tfidf = self.vectorizer.fit_transform(all_texts)
-            sims = cosine_similarity(tfidf[0:1], tfidf[1:]).flatten()
-            avg_sim, max_sim = sims.mean(), sims.max()
+        # Simple text matching without scikit-learn
+        article_text = ' '.join(articles).lower()
+        statement_lower = statement.lower()
+        
+        # Basic keyword matching
+        statement_words = [word for word in re.findall(r'\w+', statement_lower) if len(word) > 3]
+        if not statement_words:
+            statement_words = statement_lower.split()
             
-            if max_sim > 0.4:
-                verdict, conf = 'Likely True', min(max_sim * 100, 95)
-            elif max_sim > 0.2:
-                verdict, conf = 'Uncertain', min(max_sim * 80, 75)
-            else:
-                verdict, conf = 'Likely False', min((1 - avg_sim) * 60, 70)
+        matching_words = [word for word in statement_words if word in article_text]
+        match_ratio = len(matching_words) / len(statement_words) if statement_words else 0
+        
+        if match_ratio > 0.3:
+            verdict, conf = 'Likely True', min(match_ratio * 100, 85)
+        elif match_ratio > 0.1:
+            verdict, conf = 'Uncertain', min(match_ratio * 80, 60)
+        else:
+            verdict, conf = 'Likely False', min((1 - match_ratio) * 70, 65)
                 
-            return {
-                'verification': verdict, 
-                'confidence': round(conf, 2),
-                'statement': statement,
-                'reason': f'Analysis of {len(articles)} articles shows {verdict.lower()} correlation with available sources.',
-                'sources': articles[:3],
-                'articles_analyzed': len(articles)
-            }
-        except Exception as e:
-            return {
-                'verification': 'Error', 
-                'confidence': 0,
-                'statement': statement,
-                'reason': f'Analysis error: {str(e)}',
-                'sources': []
-            }
+        return {
+            'verification': verdict, 
+            'confidence': round(conf, 2),
+            'statement': statement,
+            'reason': f'Analysis of {len(articles)} articles shows {verdict.lower()} correlation with available sources. Based on basic text matching.',
+            'sources': articles,
+            'articles_analyzed': len(articles)
+        }
 
 # Initialize DB and verifier
 init_db()
@@ -230,5 +226,7 @@ def health():
     return jsonify({'status': 'ok', 'message': 'Server is running on Vercel'})
 
 # Vercel requires this
+app = app
+
 if __name__ == '__main__':
     app.run(debug=True)
